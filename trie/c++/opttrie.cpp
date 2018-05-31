@@ -1,4 +1,4 @@
-// #include <bits/stdc++.h>
+#include <bits/stdc++.h>
 
 #include <algorithm>
 #include <numeric>
@@ -30,10 +30,7 @@ public:
 
     // _________________________________________________________________________
     std::size_t                         find(const std::string& contact) const
-        {
-            std::string cpy(contact);
-            return find(cpy.begin(), cpy.end());
-        }
+    { return find(contact.begin(), contact.end()); }
 
     // _________________________________________________________________________
     std::size_t                         find(StrCIter begin, StrCIter end) const;
@@ -42,8 +39,11 @@ public:
     friend std::ostream& operator<<(std::ostream&, const Trie& trie);
 
 private:
+    // unordered map has a problem with incomplete types
     using Children =  std::map<char, Trie>;
-    // why not unordered_map?
+
+private:
+    void                                insertChild(StrCIter iter, StrCIter end);
 
 private:
     std::string    _prefix;
@@ -88,6 +88,28 @@ Trie::Trie(std::string prefix)
 
 // _____________________________________________________________________________
 void
+Trie::insertChild(StrCIter queryBegin, StrCIter queryEnd)
+{
+    if (queryBegin == queryEnd)
+    {
+        _children['#'] = Trie();
+    }
+    else
+    {
+        // used to be a leaf
+        if ((_prefix != "" && _children.empty()))
+            _children['#'] = Trie();
+
+        _children[*queryBegin] =
+            queryBegin + 1 == queryEnd
+            ? Trie("#")
+            : Trie(std::string(queryBegin+1, queryEnd));
+    }
+}
+
+
+// _____________________________________________________________________________
+void
 Trie::add(StrCIter begin, StrCIter end)
 {
     StrCIter queryIter;
@@ -100,45 +122,28 @@ Trie::add(StrCIter begin, StrCIter end)
     {
         if (queryIter != end)       // word not there yet
         {
-            auto foundIt(_children.find(*queryIter));
+            auto matchingChild(_children.find(*queryIter));
 
-            if (foundIt != _children.end())
+            if (matchingChild != _children.end())
             {
-                foundIt->second.add(queryIter+1, end);
-            }
-            else
-            {
-                _children[*queryIter] =
-                    queryIter + 1 == end
-                    ? Trie("@")
-                    : Trie(std::string(queryIter+1, end));
+                matchingChild->second.add(queryIter+1, end);
+                return;
             }
         }
     }
-    else
+    else        // partial match, we are splitting the node
     {
-        // partial match, we are splitting the node
-
         char remainderChar(*prefixIter);
-        Trie t(std::string(prefixIter+1, _prefix.cend()));
+        std::string remainderString(prefixIter+1, _prefix.cend());
+        Trie t(remainderString);
         t._children = std::move(_children);
 
         _children.clear();
         _prefix = std::string(_prefix.cbegin(), prefixIter);
         _children[remainderChar] = std::move(t);
-
-        if (queryIter == end)
-        {
-            _children['@'] = Trie();
-        }
-        else
-        {
-            _children[*queryIter] =
-                queryIter + 1 == end
-                ? Trie("@")
-                : Trie(std::string(queryIter+1, end));
-        }
     }
+
+    insertChild(queryIter, end);
 }
 
 
@@ -175,7 +180,7 @@ Trie::find(StrCIter queryBegin, StrCIter queryEnd) const
 
 
 // _____________________________________________________________________________
-#if 0
+#ifndef TEST_CASE
 int                               main()
 {
     int n;
@@ -201,7 +206,7 @@ int                               main()
         }
         else if (op == "find")
         {
-            trie.find(contact);
+            cout << trie.find(contact) << "\n";;
         }
     }
 
