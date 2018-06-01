@@ -46,8 +46,8 @@ private:
     void                                insertChild(StrCIter iter, StrCIter end);
 
 private:
-    std::string    _prefix;
     Children       _children;
+    std::string    _prefix;
     bool           _word;
 };
 
@@ -82,9 +82,9 @@ std::ostream& operator<<(std::ostream& os, const Trie& trie)
 
 // _____________________________________________________________________________
 Trie::Trie(std::string prefix, bool word, Children children)
-    : _prefix(std::move(prefix))
+    : _children(std::move(children))
+    , _prefix(std::move(prefix))
     , _word(std::move(word))
-    , _children(std::move(children))
 {}
 
 

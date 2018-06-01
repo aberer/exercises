@@ -1,11 +1,14 @@
-all:
-	g++  -g -std=c++14 -DTEST_CASE  -o opttrie_test opttrie_test.cpp
 
-test : all
+all: opttrietest opttrie
+
+test : opttrietest
 	./opttrie_test
 
-opttrie:
-	g++  -g -std=c++14 -o opttrie  opttrie.cpp
+opttrietest : opttrie_test.cpp
+	g++ -DTEST_CASE -Wall -Wextra -g -std=c++14 -o $@ $<
+
+opttrie: opttrie.cpp
+	g++ -Wall -Wextra -g -std=c++14 -o $@ $<
 
 clean:
 	rm *.o opttrie opttrie_test
