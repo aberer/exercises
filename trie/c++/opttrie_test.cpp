@@ -4,7 +4,20 @@
 
 #include <iostream>
 
-#include "trie.cpp"
+#include "opttrie.cpp"
+
+
+TEST_CASE("example test case", "[trie test]")
+{
+    Trie trie;
+
+    trie.add("hack");
+    trie.add("hackerrank");
+
+    REQUIRE(trie.find("hac") == 2u);
+    REQUIRE(trie.find("hak") == 0u);
+}
+
 
 
 TEST_CASE("adds substrings ", "[trie test]")
@@ -25,18 +38,6 @@ TEST_CASE("adds substrings ", "[trie test]")
     REQUIRE(trie.find("b") == 3u);
     REQUIRE(trie.find("be") == 2u);
     REQUIRE(trie.find("ber") == 1u);
-}
-
-
-TEST_CASE("example test case", "[trie test]")
-{
-    Trie trie;
-
-    trie.add("hack");
-    trie.add("hackerrank");
-
-    REQUIRE(trie.find("hac") == 2u);
-    REQUIRE(trie.find("hak") == 0u);
 }
 
 

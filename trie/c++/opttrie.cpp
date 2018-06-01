@@ -15,11 +15,15 @@ class Trie
 {
 public:
     using StrCIter = std::string::const_iterator;
+    // unordered map has a problem with incomplete types
+    using Children =  std::map<char, Trie>;
 
 public:
     // _________________________________________________________________________
-    Trie(std::string prefix = "");
-
+    Trie(
+        std::string prefix = "",
+        bool word = false,
+        Children children = Children());
 
     // _________________________________________________________________________
     void                                add(StrCIter begin, StrCIter end);
@@ -39,22 +43,19 @@ public:
     friend std::ostream& operator<<(std::ostream&, const Trie& trie);
 
 private:
-    // unordered map has a problem with incomplete types
-    using Children =  std::map<char, Trie>;
-
-private:
     void                                insertChild(StrCIter iter, StrCIter end);
 
 private:
     std::string    _prefix;
     Children       _children;
+    bool           _word;
 };
 
 
 
 std::ostream& operator<<(std::ostream& os, const Trie& trie)
 {
-    os << trie._prefix;
+    os << trie._prefix << (trie._word ? "@" : "");
 
     if (!trie._children.empty())
     {
@@ -80,8 +81,10 @@ std::ostream& operator<<(std::ostream& os, const Trie& trie)
 
 
 // _____________________________________________________________________________
-Trie::Trie(std::string prefix)
+Trie::Trie(std::string prefix, bool word, Children children)
     : _prefix(std::move(prefix))
+    , _word(std::move(word))
+    , _children(std::move(children))
 {}
 
 
@@ -92,18 +95,12 @@ Trie::insertChild(StrCIter queryBegin, StrCIter queryEnd)
 {
     if (queryBegin == queryEnd)
     {
-        _children['#'] = Trie();
+        _word = true;
     }
     else
     {
-        // used to be a leaf
-        if ((_prefix != "" && _children.empty()))
-            _children['#'] = Trie();
-
-        _children[*queryBegin] =
-            queryBegin + 1 == queryEnd
-            ? Trie("#")
-            : Trie(std::string(queryBegin+1, queryEnd));
+        _children[*queryBegin] = Trie(
+            std::string(queryBegin+1, queryEnd), true);
     }
 }
 
@@ -120,30 +117,34 @@ Trie::add(StrCIter begin, StrCIter end)
 
     if (prefixIter == _prefix.end())        // full prefix matched
     {
-        if (queryIter != end)       // word not there yet
-        {
-            auto matchingChild(_children.find(*queryIter));
+        Children::iterator matchingChild;
 
-            if (matchingChild != _children.end())
-            {
-                matchingChild->second.add(queryIter+1, end);
-                return;
-            }
+        // descend if necessary
+        if (queryIter != end
+            && _children.end() != (matchingChild = _children.find(*queryIter)))
+        {
+            matchingChild->second.add(queryIter+1, end);
+        }
+        else
+        {
+            insertChild(queryIter, end);
         }
     }
     else        // partial match, we are splitting the node
     {
         char remainderChar(*prefixIter);
-        std::string remainderString(prefixIter+1, _prefix.cend());
-        Trie t(remainderString);
-        t._children = std::move(_children);
+        Trie remainderTrie(
+            std::string(prefixIter+1, _prefix.cend()),
+            _word,
+            std::move(_children));
 
         _children.clear();
+        _word = false;
         _prefix = std::string(_prefix.cbegin(), prefixIter);
-        _children[remainderChar] = std::move(t);
-    }
+        _children[remainderChar] = std::move(remainderTrie);
 
-    insertChild(queryIter, end);
+        insertChild(queryIter, end);
+    }
 }
 
 
@@ -153,28 +154,33 @@ Trie::find(StrCIter queryBegin, StrCIter queryEnd) const
 {
     StrCIter queryIter;
     StrCIter prefixIter;
+    Children::const_iterator matchingChild;
 
     std::tie(queryIter, prefixIter) = std::mismatch(
         queryBegin, queryEnd, _prefix.begin());
 
     if (queryIter == queryEnd)
     {
-        return _children.empty()
-            ? 1u
-            : std::accumulate(
-                _children.begin(),
-                _children.end(),
-                0u,
-                [&](std::size_t res, const auto& t)
-                { return res + t.second.find(queryIter, queryEnd); });
+        // full query matched
+
+        auto res = std::accumulate(
+            _children.begin(),
+            _children.end(),
+            _word ? 1u : 0u,
+            [&](std::size_t res, const auto& t)
+            { return res + t.second.find(queryIter, queryEnd); });
+
+        return res;
+    }
+    else if (prefixIter == _prefix.end()
+             && _children.end() != (matchingChild = _children.find(*queryIter)))
+    {
+        return matchingChild->second.find(queryIter+1, queryEnd);
     }
     else
     {
-        auto it = _children.find(*queryIter);
-
-        return it == _children.end()
-            ? 0u
-            : it->second.find(queryIter+1, queryEnd);
+        // this branch does not match at all
+        return 0u;
     }
 }
 

@@ -1,11 +1,11 @@
 all:
-	g++  -g -std=c++14 -DTEST_CASE  -o trie_test trie_test.cpp
+	g++  -g -std=c++14 -DTEST_CASE  -o opttrie_test opttrie_test.cpp
 
 test : all
-	./trie_test
+	./opttrie_test
 
-trie:
-	g++  -g -std=c++14 -o trie  trie.cpp
+opttrie:
+	g++  -g -std=c++14 -o opttrie  opttrie.cpp
 
 clean:
-	rm *.o trie trie_test
+	rm *.o opttrie opttrie_test
