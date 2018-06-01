@@ -1,7 +1,8 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <stack>
+#include <algorithm>
 
 using namespace std;
-
 
 // _____________________________________________________________________________
 auto isOpenBracket(char c)
@@ -39,68 +40,41 @@ auto isMatching(char c, char d)
 }
 
 
-using StrCIter = std::string::const_iterator;
-using StrRevCIter = std::string::const_reverse_iterator;
-
-
 // _____________________________________________________________________________
-auto isBalancedImpl(
-    const std::string&  refString,
-    StrCIter            cursor,
-    StrRevCIter         lastOpening)
+auto isBalanced(const std::string& expression)
     -> bool
 {
-    if (cursor == refString.cend()
-        && lastOpening == refString.crend())
-    {
-        return true;
-    }
-    else if (isOpenBracket(*cursor))
-    {
-        ++cursor;
+    std::stack<char> openBrackets;
 
-        return isBalancedImpl(
-            refString, cursor, std::make_reverse_iterator(cursor));
-    }
-    else
-    {
-        // closing bracket
+    auto mismatch(
+        std::find_if(
+            expression.cbegin(),
+            expression.cend(),
+            [&openBrackets](char c)
+            {
+                if (isOpenBracket(c))
+                {
+                    openBrackets.push(c);
+                    return false;
+                }
+                else if(!openBrackets.empty()
+                        && isMatching(c, openBrackets.top()))
+                {
+                    openBrackets.pop();
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }));
 
-        if (lastOpening == refString.crend())
-        {
-            // no more brackets
-            return false;
-        }
-        else if (!isMatching(*cursor, *lastOpening))
-        {
-            // brackets do not match
-            return false;
-        }
-        else
-        {
-            // brackets matched
-            return isBalancedImpl(
-                refString,
-                cursor + 1,
-                std::find_if(lastOpening + 1, refString.crend(), isOpenBracket));
-        }
-    }
+    return mismatch == expression.end() && openBrackets.empty();
 }
 
 
 
-// _____________________________________________________________________________
-auto isBalanced(
-    const std::string& expression)
-    -> bool
-{
-    return isBalancedImpl(
-        expression, expression.cbegin(), expression.crbegin());
-}
 
-
-
-// _____________________________________________________________________________
 #ifndef TEST_CASE
 int main()
 {
